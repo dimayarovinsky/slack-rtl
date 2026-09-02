@@ -1,5 +1,7 @@
 # Slack RTL (Hebrew) for macOS
 
+![Hebrew messages and typing shown right-to-left in Slack](docs/hero.png)
+
 The Slack desktop app does not support right-to-left text. This tool fixes
 that: Hebrew messages show right-to-left, and the message box flips direction
 while you type Hebrew.
