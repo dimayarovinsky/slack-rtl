@@ -56,3 +56,11 @@ rm -rf ~/.slack-rtl "$HOME/Applications/Slack RTL.app"
 
 Then remove the `slack-rtl` line from `~/.zshrc` and open Slack the normal
 way again.
+
+## Credits and license
+
+The idea and the original text-direction script come from
+[gregvish/slackrtl](https://github.com/gregvish/slackrtl). This project is a
+rewrite for the Slack desktop app.
+
+MIT license, see [LICENSE](LICENSE).
