@@ -37,6 +37,28 @@ icon:
 If Slack is already open, the launcher will restart it with the fix. Running
 the launcher again while Slack is open is fine, it just applies the fix again.
 
+## If macOS blocks it ("Not Opened" warning)
+
+If you downloaded this as a zip file, macOS marks the files as coming from
+the internet and may block them with a warning that Apple "could not verify"
+the file. Don't click "Move to Trash". Instead, do one of these:
+
+- Best: install with `git clone` (see above) instead of downloading a zip.
+  Files from git are not blocked.
+- Or clear the mark in Terminal (adjust the path if you unzipped it
+  somewhere else):
+
+  ```
+  xattr -rd com.apple.quarantine ~/Downloads/slack-rtl
+  ```
+
+- Or go to System Settings, then Privacy & Security, scroll down and click
+  "Open Anyway".
+
+Also note: run `./install.sh` from Terminal rather than double-clicking files
+in Finder. After installing, use the "Slack RTL" app it creates, which is
+built on your own Mac and never gets blocked.
+
 ## Good to know
 
 - The fix only changes how Slack looks on your own screen. Teammates without
