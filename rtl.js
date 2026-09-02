@@ -5,39 +5,39 @@
   if (window.__slackRtl) return;
   window.__slackRtl = true;
 
-  // Leading whitespace/digits/punctuation followed by a Hebrew character
+  // Slack already resolves message direction itself (dir="auto" on message
+  // blocks), but leaves the text left-aligned. This CSS right-aligns Hebrew
+  // messages at first paint, so there is no visible "jump" after render.
+  const CSS = [
+    '.p-rich_text_section:dir(rtl),',
+    '.p-rich_text_list:dir(rtl) {',
+    '  text-align: right;',
+    '}',
+  ].join('\n');
+
+  function addStyle() {
+    if (document.getElementById('slack-rtl-style')) return;
+    const style = document.createElement('style');
+    style.id = 'slack-rtl-style';
+    style.textContent = CSS;
+    (document.head || document.documentElement).appendChild(style);
+  }
+  if (document.documentElement) {
+    addStyle();
+  } else {
+    document.addEventListener('DOMContentLoaded', addStyle);
+  }
+
+  // Composer: toggle direction live in both directions while typing.
+  // Leading whitespace/digits/punctuation followed by a Hebrew character.
   const HEBREW_LEAD = /^[\s\d"'()\[\]{}.,:;!?*_~-]*[֐-׿]/;
 
-  function isRtlText(el) {
-    return typeof el.innerText === 'string' && HEBREW_LEAD.test(el.innerText);
-  }
-
-  // Rendered messages: only ever flip TO rtl, never force ltr back
-  // (avoids fighting Slack's own styles on non-Hebrew content).
-  // Includes lists (.p-rich_text_list) — Slack leaves them text-align:left
-  // even when the message direction is rtl, which strands short lines far
-  // away from their bullet/number markers.
-  function fixMessages() {
-    const elems = document.querySelectorAll(
-      '.p-rich_text_section, .p-rich_text_list'
-    );
-    for (const el of elems) {
-      if (el.dataset.rtlDone) continue;
-      if (isRtlText(el)) {
-        el.style.setProperty('direction', 'rtl');
-        el.style.setProperty('text-align', 'right');
-        el.dataset.rtlDone = '1';
-      }
-    }
-  }
-
-  // Composer: toggle live in both directions while typing.
   document.addEventListener('keyup', (event) => {
     const editor = event.target && event.target.closest
       ? event.target.closest('.ql-editor')
       : null;
     if (!editor) return;
-    if (isRtlText(editor)) {
+    if (typeof editor.innerText === 'string' && HEBREW_LEAD.test(editor.innerText)) {
       editor.style.setProperty('direction', 'rtl');
       editor.style.setProperty('text-align', 'right');
     } else {
@@ -45,19 +45,4 @@
       editor.style.setProperty('text-align', 'left');
     }
   }, true);
-
-  // Debounced rescan on DOM changes (new messages, channel switches).
-  let pending = null;
-  const observer = new MutationObserver(() => {
-    if (pending) return;
-    pending = setTimeout(() => {
-      pending = null;
-      fixMessages();
-    }, 200);
-  });
-
-  setTimeout(() => {
-    observer.observe(document.body, { childList: true, subtree: true });
-    fixMessages();
-  }, 1000);
 })();
