@@ -1,0 +1,43 @@
+#!/bin/bash
+# Launch Slack with a local debug port and inject Hebrew RTL support.
+# Re-running while Slack is already up just re-applies the injection.
+set -u
+
+PORT="${SLACK_RTL_PORT:-9222}"
+DIR="$(cd "$(dirname "$0")" && pwd)"
+SLACK_BIN="/Applications/Slack.app/Contents/MacOS/Slack"
+
+if [ ! -x "$SLACK_BIN" ]; then
+  echo "Slack.app not found in /Applications." >&2
+  exit 1
+fi
+
+port_up() {
+  curl -s -m 1 "http://127.0.0.1:$PORT/json/version" >/dev/null 2>&1
+}
+
+if ! port_up; then
+  if pgrep -xq Slack; then
+    echo "Slack is running without the debug port — restarting it..."
+    osascript -e 'quit app "Slack"' >/dev/null 2>&1
+    for _ in $(seq 1 30); do
+      pgrep -xq Slack || break
+      sleep 0.5
+    done
+  fi
+  echo "Launching Slack (debug port $PORT)..."
+  nohup "$SLACK_BIN" --remote-debugging-port="$PORT" >/dev/null 2>&1 &
+  disown
+fi
+
+for _ in $(seq 1 30); do
+  port_up && break
+  sleep 1
+done
+
+if ! port_up; then
+  echo "Slack's debug port never came up — Slack may be blocking --remote-debugging-port." >&2
+  exit 1
+fi
+
+exec /usr/bin/python3 "$DIR/inject.py"
