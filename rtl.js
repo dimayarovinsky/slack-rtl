@@ -14,8 +14,13 @@
 
   // Rendered messages: only ever flip TO rtl, never force ltr back
   // (avoids fighting Slack's own styles on non-Hebrew content).
+  // Includes lists (.p-rich_text_list) — Slack leaves them text-align:left
+  // even when the message direction is rtl, which strands short lines far
+  // away from their bullet/number markers.
   function fixMessages() {
-    const elems = document.getElementsByClassName('p-rich_text_section');
+    const elems = document.querySelectorAll(
+      '.p-rich_text_section, .p-rich_text_list'
+    );
     for (const el of elems) {
       if (el.dataset.rtlDone) continue;
       if (isRtlText(el)) {
