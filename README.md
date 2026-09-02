@@ -44,7 +44,7 @@ the launcher again while Slack is open is fine, it just applies the fix again.
 - If you open Slack from the regular icon, the fix is not applied. Just run
   the launcher and it will restart Slack correctly.
 - A future Slack update might break the fix. If Hebrew stops showing
-  right-to-left one day, ping whoever shared this with you.
+  right-to-left one day, open an issue on this repo.
 - While Slack runs this way it keeps a local debugging port (9222) open. Only
   programs on your own computer can reach it, but it is worth knowing.
 
