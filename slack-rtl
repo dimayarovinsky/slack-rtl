@@ -6,6 +6,11 @@ set -u
 PORT="${SLACK_RTL_PORT:-9222}"
 DIR="$(cd "$(dirname "$0")" && pwd)"
 SLACK_BIN="/Applications/Slack.app/Contents/MacOS/Slack"
+# Slack 4.53+ refuses --remote-debugging-port on the default profile, so the
+# RTL launcher runs Slack on its own profile folder. It is seeded once from the
+# default profile (caches skipped) so you stay signed in.
+DEFAULT_PROFILE="$HOME/Library/Application Support/Slack"
+PROFILE="${SLACK_RTL_PROFILE:-$DIR/profile}"
 
 if [ ! -x "$SLACK_BIN" ]; then
   echo "Slack.app not found in /Applications." >&2
@@ -25,8 +30,18 @@ if ! port_up; then
       sleep 0.5
     done
   fi
+  if [ ! -d "$PROFILE" ] && [ -d "$DEFAULT_PROFILE" ]; then
+    echo "Creating the RTL profile from your Slack profile (one time)..."
+    mkdir -p "$PROFILE"
+    rsync -a \
+      --exclude 'Cache' --exclude 'Code Cache' --exclude 'GPUCache' \
+      --exclude 'Dawn*' --exclude 'GraphiteDawnCache' --exclude 'GPUPersistentCache' \
+      --exclude 'Crashpad' --exclude 'StaleCookies-*' --exclude 'DevToolsActivePort' \
+      --exclude 'Singleton*' --exclude 'logs' \
+      "$DEFAULT_PROFILE/" "$PROFILE/"
+  fi
   echo "Launching Slack (debug port $PORT)..."
-  nohup "$SLACK_BIN" --remote-debugging-port="$PORT" >/dev/null 2>&1 &
+  nohup "$SLACK_BIN" --user-data-dir="$PROFILE" --remote-debugging-port="$PORT" >/dev/null 2>&1 &
   disown
 fi
 

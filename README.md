@@ -49,6 +49,12 @@ the launcher again while Slack is open is fine, it just applies the fix again.
   right-to-left one day, open an issue on this repo.
 - While Slack runs this way it keeps a local debugging port (9222) open. Only
   programs on your own computer can reach it, but it is worth knowing.
+- Slack 4.53 and newer only allow that debugging port on a separate profile,
+  so the launcher runs Slack from its own profile folder, `~/.slack-rtl/profile`.
+  The first time, it copies your normal Slack profile there (caches skipped),
+  so you stay signed in. After that the two are separate: a workspace you add
+  while using the launcher won't show up when you open the regular Slack icon,
+  and the other way around.
 
 ## Uninstall
 
