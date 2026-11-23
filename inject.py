@@ -138,27 +138,76 @@ def inject(target):
         ws.close()
 
 
+def is_slack_window(target):
+    """Main Slack windows load app.slack.com. Windows popped out of Slack
+    (a channel or DM opened in its own window) report about:blank as their
+    URL, so they are matched by their window title instead."""
+    if target.get("type") != "page":
+        return False
+    url = target.get("url") or ""
+    if "app.slack.com" in url:
+        return True
+    return url == "about:blank" and "Slack" in (target.get("title") or "")
+
+
+def slack_pages():
+    return [t for t in list_targets() if is_slack_window(t)]
+
+
+def inject_all(pages, done=None):
+    ok = 0
+    for p in pages:
+        if done is not None and p["id"] in done:
+            continue
+        try:
+            inject(p)
+            ok += 1
+            if done is not None:
+                done.add(p["id"])
+            print("RTL injected: {}".format(p.get("title") or p.get("url")), flush=True)
+        except (OSError, RuntimeError, TimeoutError, ValueError) as e:
+            print("Failed on {}: {}".format(p.get("url"), e), file=sys.stderr, flush=True)
+    return ok
+
+
+def watch():
+    """Keep running while Slack is open and inject into every window Slack
+    opens later. Exits once Slack quits (the debug port goes away)."""
+    import fcntl
+
+    lock = open(os.path.join(DIR, ".watcher.lock"), "w")
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        return  # another watcher is already running
+    done = set()
+    down_since = None
+    while True:
+        try:
+            pages = slack_pages()
+        except (OSError, ValueError):
+            down_since = down_since or time.time()
+            if time.time() - down_since > 20:
+                return  # Slack quit
+        else:
+            down_since = None
+            done &= {p["id"] for p in pages}  # forget closed windows
+            inject_all(pages, done)
+        time.sleep(1)
+
+
 def main():
+    if "--watch" in sys.argv:
+        watch()
+        return
     deadline = time.time() + WAIT_SECONDS
     while time.time() < deadline:
         try:
-            targets = list_targets()
-        except OSError:
-            targets = []  # port not up yet
-        pages = [
-            t for t in targets
-            if t.get("type") == "page" and "app.slack.com" in (t.get("url") or "")
-        ]
+            pages = slack_pages()
+        except (OSError, ValueError):
+            pages = []  # port not up yet
         if pages:
-            ok = 0
-            for p in pages:
-                try:
-                    inject(p)
-                    ok += 1
-                    print("RTL injected: {}".format(p.get("title") or p.get("url")))
-                except (OSError, RuntimeError, TimeoutError) as e:
-                    print("Failed on {}: {}".format(p.get("url"), e), file=sys.stderr)
-            sys.exit(0 if ok else 1)
+            sys.exit(0 if inject_all(pages) else 1)
         time.sleep(1)
     print("Timed out waiting for a Slack window on the debug port.", file=sys.stderr)
     sys.exit(1)

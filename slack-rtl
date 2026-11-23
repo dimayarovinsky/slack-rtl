@@ -55,4 +55,11 @@ if ! port_up; then
   exit 1
 fi
 
-exec /usr/bin/python3 "$DIR/inject.py"
+/usr/bin/python3 "$DIR/inject.py"
+status=$?
+
+# Keep watching while Slack runs, so windows opened later (a channel or DM
+# popped out into its own window) get RTL too. Only one watcher runs at a time.
+nohup /usr/bin/python3 "$DIR/inject.py" --watch >/dev/null 2>&1 &
+disown
+exit $status
